@@ -158,13 +158,14 @@ sample.z=function(ltheta,dat,dat1m,lpsi,l1mpsi,ngroup.loc,ngroup.spp,nloc,nspp,w
   
   #probability for groups that do not exist yet
   tmp=rep(0,nloc)
-  k=lgamma(2+nspp)
+  
   for (i in 1:ngroup.spp){
-    cond=w==i
-    if (sum(cond)==0) nik=rep(0,nloc)
-    if (sum(cond)==1) nik=dat[,cond]
-    if (sum(cond)> 1) nik=rowSums(dat[,cond])
-    tmp=tmp+lgamma(nik+1)+lgamma(nspp-nik+1)-k
+    cond=w==i #species assigned to group i
+    soma=sum(cond)
+    if (soma==0) n1ik=rep(0,nloc)
+    if (soma==1) n1ik=dat[,cond]
+    if (soma> 1) n1ik=rowSums(dat[,cond])
+    tmp=tmp+lgamma(n1ik+1)+lgamma(soma-n1ik+1)-lgamma(2+soma)
   }
   lprob.nexist=matrix(ltheta,nloc,ngroup.loc,byrow=T)+matrix(tmp,nloc,ngroup.loc)
   
@@ -205,13 +206,13 @@ sample.w=function(lphi,dat,dat1m,lpsi,l1mpsi,ngroup.spp,ngroup.loc,nloc,nspp,w,z
   
   #probability for groups that do not exist yet
   tmp=rep(0,nspp)
-  k=lgamma(2+nloc)
   for (i in 1:ngroup.loc){
     cond=z==i
-    if (sum(cond)==0) njk=rep(0,nspp)
-    if (sum(cond)==1) njk=dat[cond,]
-    if (sum(cond)> 1) njk=colSums(dat[cond,])
-    tmp=tmp+lgamma(njk+1)+lgamma(nloc-njk+1)-k
+    soma=sum(cond)
+    if (soma==0) n1jk=rep(0,nspp)
+    if (soma==1) n1jk=dat[cond,]
+    if (soma> 1) n1jk=colSums(dat[cond,])
+    tmp=tmp+lgamma(n1jk+1)+lgamma(soma-n1jk+1)-lgamma(2+soma)
   }
   lprob.nexist=matrix(lphi,nspp,ngroup.spp,byrow=T)+matrix(tmp,nspp,ngroup.spp)
   
