@@ -6,7 +6,8 @@
 #'            and contains the presence-absence data 
 #' @param ngroup.loc this is the maximum number of groups for locations
 #' @param ngroup.spp this is the maximum number of groups for species
-#' 
+#' @param z this is a vector of length L, storing the current membership of each location
+#' @param w this is a vector of length S, storing the current membership of each species
 #' @param return this function returns a matrix of psi parameters
 #' @export
 
@@ -29,11 +30,21 @@ sample.psi=function(z,w,dat,ngroup.loc,ngroup.spp){
 #' @param gamma.v this is the truncated stick-breaking prior parameter for the 
 #'                number of location groups. This value should be between 0 and 1, and
 #'                small values enforce more parsimonius results (i.e., fewer groups)
-#' @param return this function returns a list containing 2 vectors of parameters (theta and vk)
+#' @param burnin this is the number of MCMC samples that are going to be thrown out as 
+#'               part of the burn-in phrase
+#' @param gibbs.step this is the number of the current iteration of the gibbs sampler
+#' @param theta vector of size ngroup.loc (the maximum number of groups for locations) containing 
+#'              the current estimate of theta (i.e., probability of each location group)                  
+#' @param psi matrix of size ngroup.loc (the maximum number of groups for locations) and 
+#'            ngroup.spp (the maximum number of groups for species) containing the current estimate 
+#'            of psi
+#' @param z this is a vector of length L, storing the current membership of each location
+#' @param return this function returns a list containing 4 items (theta, vk, psi, and z)
 #' @export
 
 sample.theta=function(ngroup.loc,gamma.v,burnin,gibbs.step,theta,psi,z){
-  #re-order thetas. Based on that, re-order z's
+  #re-order thetas in decreasing order if we are still in the burn-in phrase. 
+  #based on this re-ordering, re-order z's and psi's
   if(gibbs.step<burnin & gibbs.step%%50==0){
     ind=order(theta,decreasing=T)
     theta=theta[ind]
@@ -57,17 +68,13 @@ sample.theta=function(ngroup.loc,gamma.v,burnin,gibbs.step,theta,psi,z){
   ind=ngroup.loc:1
   invcumsum=cumsum(nk[ind])[ind]
   vk=rbeta(ngroup.loc,nk+1,invcumsum-nk+gamma.v)
-  vk[vk>0.9999999]=0.9999999 #for numerical issues
+  vk[vk>0.99999]=0.99999 #to avoid numerical issues
   vk[ngroup.loc]=1
   
   #convert from vk to theta
   theta=convertSBtoNormal(vk)
   
-  #to avoid numerical issues
-  cond=vk>0.99999
-  vk[cond]=0.99999
-  
-  #output both vk and theta
+  #output vk, theta, z, and psi
   list(vk=vk,theta=theta,z=z,psi=psi)
 }
 
@@ -77,16 +84,25 @@ sample.theta=function(ngroup.loc,gamma.v,burnin,gibbs.step,theta,psi,z){
 #' then calculate the implied phi parameters
 #'
 #' @param ngroup.spp this is the maximum number of groups for species
-#' @param param list containing the most up-to-date parameter values
 #' @param gamma.u this is the truncated stick-breaking prior parameter for the 
 #'                number of species groups. This value should be between 0 and 1, and
 #'                small values enforce more parsimonius results (i.e., fewer groups)
-#' @param return this function returns a list with 2 vectors of parameters (phi and uk)
+#' @param burnin this is the number of MCMC samples that are going to be thrown out as 
+#'               part of the burn-in phrase
+#' @param gibbs.step this is the number of the current iteration of the gibbs sampler
+#' @param phi vector of size ngroup.spp (the maximum number of groups for species) containing 
+#'              the current estimate of phi (i.e., probability of each species group)                  
+#' @param psi matrix of size ngroup.loc (the maximum number of groups for locations) and 
+#'            ngroup.spp (the maximum number of groups for species) containing the current estimate 
+#'            of psi
+#' @param w this is a vector of length S, storing the current membership of each species
+#' @param return this function returns a list with 4 items (phi, uk, w, psi)
 #' @export
 #' 
 
 sample.phi=function(ngroup.spp,gamma.u,burnin,gibbs.step,phi,psi,w){
-  #re-order phi. Based on that, re-order w's
+  #re-order phi in decreasing order if we are still in burn-in phase 
+  #Based on this re-ordering, re-order w and psi
   if(gibbs.step<burnin & gibbs.step%%50==0){
     ind=order(phi,decreasing=T)
     phi=phi[ind]
@@ -115,16 +131,30 @@ sample.phi=function(ngroup.spp,gamma.u,burnin,gibbs.step,phi,psi,w){
 
   #convert uk to phi
   phi=convertSBtoNormal(uk)
-  # sum(phi)
+  
+  #retunr uk, phi, w, and psi
   list(uk=uk,phi=phi,w=w,psi=psi)
 }
 #--------------------------
+#' Sample gamma.u
+#' 
+#' Sample the gamma.u parameter from its full conditional distribution
+#'
+#' @param uk this is a vector of size ngroup.spp with the pieces of the unit 1 stick for species grouping
+#' @param ngroup.spp this is the maximum number of groups for species
+#' @param gamma.possib this is a vector containing the possible values that gamma.u can take
+#' @param return this function returns a real number (gamma.u) 
+#' @export
+#' 
 sample.gamma.u=function(uk,gamma.possib,ngroup.spp){
+  #calculate the stick-breaking probabilities for different values of gamma.u
   ngamma=length(gamma.possib)
   soma=sum(log(1-uk[-ngroup.spp]))
   k=(ngroup.spp-1)*(lgamma(1+gamma.possib)-lgamma(gamma.possib))
   res=k+(gamma.possib-1)*soma
-  # sum(dbeta(v[-ngroup.spp],1,gamma.possib[5],log=T))
+  #to check this code: sum(dbeta(v[-ngroup.spp],1,gamma.possib[5],log=T))
+  
+  #exponentiate and normalize these probabilities to draw from categorical distribution
   res=res-max(res)
   res1=exp(res)
   res2=res1/sum(res1)
@@ -133,12 +163,26 @@ sample.gamma.u=function(uk,gamma.possib,ngroup.spp){
   gamma.possib[ind]
 }
 #--------------------------
+#' Sample gamma.v
+#' 
+#' Sample the gamma.v parameter from its full conditional distribution
+#'
+#' @param vk this is a vector of size ngroup.loc with the pieces of the unit 1 stick for location grouping
+#' @param ngroup.loc this is the maximum number of groups for locations
+#' @param gamma.possib this is a vector containing the possible values that gamma.u can take
+#' @param return this function returns a real number (gamma.v) 
+#' @export
+#' 
+
 sample.gamma.v=function(vk,gamma.possib,ngroup.loc){
+  #calculate the stick-breaking probabilities for different values of gamma.v
   ngamma=length(gamma.possib)
   soma=sum(log(1-vk[-ngroup.loc]))
   k=(ngroup.loc-1)*(lgamma(1+gamma.possib)-lgamma(gamma.possib))
   res=k+(gamma.possib-1)*soma
-  # sum(dbeta(v[-ngroups],1,gamma.possib[5],log=T))
+  #to check this code: sum(dbeta(v[-ngroups],1,gamma.possib[5],log=T))
+  
+  #exponentiate and normalize these probabilities to draw from categorical distribution
   res=res-max(res)
   res1=exp(res)
   res2=res1/sum(res1)
@@ -147,8 +191,29 @@ sample.gamma.v=function(vk,gamma.possib,ngroup.loc){
   gamma.possib[ind]
 }
 #--------------------------
+#' Sample z
+#' 
+#' Sample the vector z containing the membership of each location
+#'
+#' @param ltheta this is equal to log(theta)
+#' @param dat this matrix has L rows (e.g., locations) and S columns (e.g., species)
+#'            and contains the presence-absence data
+#' @param dat1m this matrix has L rows (e.g., locations) and S columns (e.g., species)
+#'              and is calculated as 1-dat
+#' @param lpsi this is equal to log(psi)
+#' @param l1mpsi this is equal to log(1-psi)
+#' @param ngroup.loc this is the maximum number of groups for locations
+#' @param ngroup.spp this is the maximum number of groups for species
+#' @param nloc total number of locations
+#' @param nspp total number of species
+#' @param w this is a vector of length S, storing the current membership of each species
+#' @param z this is a vector of length L, storing the current membership of each locations
+#' @param return this function returns a vector of length L containing z 
+#' @export
+#' 
+
 sample.z=function(ltheta,dat,dat1m,lpsi,l1mpsi,ngroup.loc,ngroup.spp,nloc,nspp,w,z){
-  #probability for groups that exist
+  #calculation of log probability for groups that already exist
   lprob.exist=matrix(NA,nloc,ngroup.loc)
   for (i in 1:ngroup.loc){
     lpsi1=matrix(lpsi[i,w],nloc,nspp,byrow=T)
@@ -156,7 +221,7 @@ sample.z=function(ltheta,dat,dat1m,lpsi,l1mpsi,ngroup.loc,ngroup.spp,nloc,nspp,w
     lprob.exist[,i]=ltheta[i]+rowSums(dat*lpsi1+dat1m*l1mpsi1)
   }
   
-  #probability for groups that do not exist yet
+  #calculation of log probability for groups that do not exist yet
   tmp=rep(0,nloc)
   
   for (i in 1:ngroup.spp){
@@ -169,11 +234,12 @@ sample.z=function(ltheta,dat,dat1m,lpsi,l1mpsi,ngroup.loc,ngroup.spp,nloc,nspp,w
   }
   lprob.nexist=matrix(ltheta,nloc,ngroup.loc,byrow=T)+matrix(tmp,nloc,ngroup.loc)
   
-  #sample z
+  #calculate the number of locations in each group
   tab=rep(0,ngroup.loc)
   tmp=table(z)
   tab[as.numeric(names(tmp))]=tmp
   
+  #sample z
   for (i in 1:nloc){
     tab[z[i]]=tab[z[i]]-1
     lprob=rep(NA,ngroup.loc)
@@ -195,8 +261,28 @@ sample.z=function(ltheta,dat,dat1m,lpsi,l1mpsi,ngroup.loc,ngroup.spp,nloc,nspp,w
   z
 }
 #--------------------------
+#' Sample w
+#' 
+#' Sample the vector w containing the membership of each species
+#'
+#' @param lphi this is equal to log(phi)
+#' @param dat this matrix has L rows (e.g., locations) and S columns (e.g., species)
+#'            and contains the presence-absence data
+#' @param dat1m this matrix has L rows (e.g., locations) and S columns (e.g., species)
+#'              and is calculated as 1-dat
+#' @param lpsi this is equal to log(psi)
+#' @param l1mpsi this is equal to log(1-psi)
+#' @param ngroup.loc this is the maximum number of groups for locations
+#' @param ngroup.spp this is the maximum number of groups for species
+#' @param nloc total number of locations
+#' @param nspp total number of species
+#' @param w this is a vector of length S, storing the current membership of each species
+#' @param z this is a vector of length L, storing the current membership of each locations
+#' @param return this function returns a vector of length S containing w 
+#' @export
+#' 
 sample.w=function(lphi,dat,dat1m,lpsi,l1mpsi,ngroup.spp,ngroup.loc,nloc,nspp,w,z){
-  #probability for groups that exist
+  #calculate log probability for groups that already exist
   lprob.exist=matrix(NA,nspp,ngroup.spp)
   for (i in 1:ngroup.spp){
     lpsi1=matrix(lpsi[z,i],nloc,nspp)
@@ -204,7 +290,7 @@ sample.w=function(lphi,dat,dat1m,lpsi,l1mpsi,ngroup.spp,ngroup.loc,nloc,nspp,w,z
     lprob.exist[,i]=lphi[i]+colSums(dat*lpsi1+dat1m*l1mpsi1)
   }
   
-  #probability for groups that do not exist yet
+  #calculate log probability for groups that do not exist yet
   tmp=rep(0,nspp)
   for (i in 1:ngroup.loc){
     cond=z==i
@@ -216,11 +302,12 @@ sample.w=function(lphi,dat,dat1m,lpsi,l1mpsi,ngroup.spp,ngroup.loc,nloc,nspp,w,z
   }
   lprob.nexist=matrix(lphi,nspp,ngroup.spp,byrow=T)+matrix(tmp,nspp,ngroup.spp)
   
-  #sample w
+  #get the number of species assigned to each group
   tab=rep(0,ngroup.spp)
   tmp=table(w)
   tab[as.numeric(names(tmp))]=tmp
   
+  #sample w
   for (i in 1:nspp){
     tab[w[i]]=tab[w[i]]-1
     lprob=rep(NA,ngroup.spp)

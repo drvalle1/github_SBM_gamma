@@ -14,6 +14,7 @@
 #'               - psi:   matrix with the presence probability for each location group and species group                                
 #'               - z:     matrix with the cluster assignment of each location
 #'               - w:     matrix with the cluster assignment of each species
+#'               -gamma:  matrix with the estimated gamma parameters (one for locations and the other for species)
 #' @export
 
 SBM=function(dat,ngroup.loc,ngroup.spp,ngibbs,burnin){
@@ -30,9 +31,9 @@ SBM=function(dat,ngroup.loc,ngroup.spp,ngibbs,burnin){
   psi=matrix(tmp,ngroup.loc,ngroup.spp)
   gamma.v=0.1
   gamma.u=0.1
-  gamma.possib=seq(from=0.1,to=1,by=0.05)
+  gamma.possib=seq(from=0.1,to=1,by=0.05) #discretization of possible gamma values
   
-  #useful stuff
+  #pre-calculate useful quantities
   dat1m=1-dat
   
   #vectors to store results from iterations of gibbs sampler
@@ -48,9 +49,11 @@ SBM=function(dat,ngroup.loc,ngroup.spp,ngibbs,burnin){
   options(warn=2)
   for (i in 1:ngibbs){
     print(i)
-    #sample parameters 
+    
+    #sample psi
     psi=sample.psi(z=z,w=w,dat=dat,ngroup.loc=ngroup.loc,ngroup.spp=ngroup.spp)
     
+    #sample theta, vk (in some cases, this will lead to changes in z and psi as well)
     tmp=sample.theta(ngroup.loc=ngroup.loc,gamma.v=gamma.v,burnin=burnin,
                      gibbs.step=i,theta=theta,psi=psi,z=z)
     theta=tmp$theta
@@ -58,6 +61,7 @@ SBM=function(dat,ngroup.loc,ngroup.spp,ngibbs,burnin){
     z=tmp$z
     psi=tmp$psi
     
+    #sample phi, uk (in some cases, this will lead to changes in w and psi as well)
     tmp=sample.phi(ngroup.spp=ngroup.spp,gamma.u=gamma.u,burnin=burnin,
                    gibbs.step=i,phi=phi,psi=psi,w=w)
     phi=tmp$phi
@@ -65,18 +69,23 @@ SBM=function(dat,ngroup.loc,ngroup.spp,ngibbs,burnin){
     w=tmp$w
     psi=tmp$psi
     
+    #pre-calculate useful quantities
     lpsi=log(psi)
     l1mpsi=log(1-psi)
+    
+    #sample z
     z=sample.z(ltheta=log(theta),dat=dat,dat1m=dat1m,lpsi=lpsi,l1mpsi=l1mpsi,
                ngroup.loc=ngroup.loc,ngroup.spp=ngroup.spp,nloc=nloc,nspp=nspp,
                w=w,z=z)
     # z=z.true
     
+    #sample w
     w=sample.w(lphi=log(phi),dat=dat,dat1m=dat1m,lpsi=lpsi,l1mpsi=l1mpsi,
                ngroup.spp=ngroup.spp,ngroup.loc=ngroup.loc,nloc=nloc,nspp=nspp,
                w=w,z=z)
     # w=w.true
     
+    #sample gammas
     gamma.u=sample.gamma.u(uk=uk,gamma.possib=gamma.possib,ngroup.spp=ngroup.spp)
     gamma.v=sample.gamma.v(vk=vk,gamma.possib=gamma.possib,ngroup.loc=ngroup.loc)
     
@@ -95,7 +104,7 @@ SBM=function(dat,ngroup.loc,ngroup.spp,ngibbs,burnin){
     vec.gamma[i,]=c(gamma.u,gamma.v)
   }
   
-  #output a list containing several matrices
+  #output a list containing several matrices after removing burn-in
   seq1=burnin:ngibbs
   list(theta=vec.theta[seq1,],
        phi=vec.phi[seq1,],

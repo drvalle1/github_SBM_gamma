@@ -8,30 +8,6 @@ using namespace Rcpp;
 /*********************************                      UTILS          *****************************************************/
 /***************************************************************************************************************************/
 
-//' Identify for which index the cumulative sum of prob is smaller than value
-//' 
-//' Identify for which index the cumulative sum of probabilities (prob) is smaller than
-//' a given value (value). This function helps with multinomial draws
-//' 
-//' @param value a real number between 0 and 1
-//' @param prob a vector of probabilities that sum to one
-//' @return this function returns the integer res
-//' @export
-
-int whichLessDVPresence(double value, NumericVector prob) {
-  int res=-1;
-  double probcum = 0;
-  
-  for (int i = 0; i < prob.length(); i++) {
-    probcum = probcum + prob(i); //calculate the cumulative sum of the vector prob
-    if (value < probcum) {
-      res = i;
-      break;
-    }
-  }
-  return res;
-}
-
 //' Summarize data according to the different location and species groups
 //' 
 //' This function determines how many observations are in each location group l 
@@ -70,7 +46,7 @@ Rcpp::List getql(IntegerVector z, IntegerVector w, IntegerMatrix dat,
   return(resTemp);
 }
 
-//' Convert the vector v into the vector res using the stick-breaking formula
+//' Convert the vector v into the vector theta/phi using the stick-breaking formula
 //' 
 //' This function converts the input vector v into another vector of probabilities 
 //' that sum to one based on the stick-breaking equation
@@ -92,97 +68,3 @@ NumericVector convertSBtoNormal(NumericVector v) {
   
   return (res);
 }
-
-//' Sample the cluster assignment z for each location 
-//' 
-//' This function samples the cluster assignment z for each location
-//' 
-//' @param ltheta this is log(theta)
-//' @param dat this matrix has L rows (e.g., locations) and S columns (e.g., species)
-//'        and contains the presence-absence data
-//' @param dat1m this matrix has L rows (e.g., locations) and S columns (e.g., species)
-//'        and is calculated as 1-dat
-//' @param lpsi this is log(psi)
-//' @param l1mpsi this is log(1-psi)
-//' @param w this is the cluster assignment for each species
-//' @param runi this is a vector of uniform random variables
-//' @return this function returns a vector z with the cluster assignment of each locations
-//' @export
-//' 
-// [[Rcpp::export]]
-IntegerVector samplez(NumericVector ltheta,
-                      IntegerMatrix dat,
-                      IntegerMatrix dat1m,
-                      NumericMatrix lpsi,
-                      NumericMatrix l1mpsi,
-                      IntegerVector w,
-                      NumericVector runi) {
-  IntegerVector z(dat.nrow());
-  NumericVector prob(ltheta.size());
-  double tmp=0;
-  
-  for(int i=0; i<dat.nrow();i++){
-    //calculate log-probabilities
-    for (int k=0; k<ltheta.size(); k++){
-      tmp=0;
-      for (int j=0; j<dat.ncol(); j++){ //sum over all species
-        tmp=tmp+dat(i,j)*lpsi(k,w[j])+dat1m(i,j)*l1mpsi(k,w[j]);      
-      }        
-      prob[k]=tmp+ltheta[k]; //add prior log-probability for that group
-    }
-    prob=prob-max(prob);  //for numerical stability
-    prob=exp(prob);       //exponentiate log-probability
-    prob=prob/sum(prob); //normalize to sum to 1
-    
-    //multinomial draw
-    z[i]=whichLessDVPresence(runi[i],prob)+1;
-  }
-  return (z);
-}
-
-//' Sample the cluster assignment w for each species
-//' 
-//' This function samples the cluster assignment w for each species
-//' 
-//' @param lphi this is log(phi)
-//' @param dat this matrix has L rows (e.g., locations) and S columns (e.g., species)
-//'        and contains the presence-absence data
-//' @param dat1m this matrix has L rows (e.g., locations) and S columns (e.g., species)
-//'        and is calculated as 1-dat
-//' @param lpsi this is log(psi)
-//' @param l1mpsi this is log(1-psi)
-//' @param z this is the cluster assignment for each location
-//' @param runi this is a vector of uniform random variables
-//' @return this function returns a vector w with the cluster assignment of each species
-//' @export
-// [[Rcpp::export]]
-IntegerVector samplew(NumericVector lphi,
-                      IntegerMatrix dat,
-                      IntegerMatrix dat1m,
-                      NumericMatrix lpsi,
-                      NumericMatrix l1mpsi,
-                      IntegerVector z,
-                      NumericVector runi) {
-  IntegerVector w(dat.ncol());
-  NumericVector prob(lphi.size());
-  double tmp=0;
-  
-  for(int j=0; j<dat.ncol();j++){
-    //calculate log-probabilities
-    for (int k=0; k<lphi.size(); k++){
-      tmp=0;
-      for (int i=0; i<dat.nrow(); i++){ //sum over all locations
-        tmp=tmp+dat(i,j)*lpsi(z[i],k)+dat1m(i,j)*l1mpsi(z[i],k);      
-      }        
-      prob[k]=tmp+lphi[k]; //add log prior-probability
-    }
-    prob=prob-max(prob); //for numerical stability
-    prob=exp(prob);      //exponentiate log-probabilities
-    prob=prob/sum(prob); //normalize results to sum to 1
-    
-    //multinomial draw
-    w[j]=whichLessDVPresence(runi[j],prob)+1;
-  }
-  return (w);
-}
-
