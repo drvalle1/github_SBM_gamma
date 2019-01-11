@@ -1,14 +1,14 @@
 #' Sample psi parameters
 #' 
-#' Sample psi parameters from their full conditional distributions
+#' Sample the presence probability for each location and species group (psi) from 
+#' it's full conditional distribution
 #' 
-#' @param dat this matrix has L rows (e.g., locations) and S columns (e.g., species)
-#'            and contains the presence-absence data 
-#' @param ngroup.loc this is the maximum number of groups for locations
-#' @param ngroup.spp this is the maximum number of groups for species
-#' @param z this is a vector of length L, storing the current membership of each location
-#' @param w this is a vector of length S, storing the current membership of each species
-#' @param return this function returns a matrix of psi parameters
+#' @param dat L x S matrix containing the presence-absence data 
+#' @param ngroup.loc maximum number of location groups (KL)
+#' @param ngroup.spp maximum number of species groups (KS)
+#' @param z vector of length L, storing the current membership of each location
+#' @param w vector of length S, storing the current membership of each species
+#' @param return a KL x KS matrix of psi parameters
 #' @export
 
 sample.psi=function(z,w,dat,ngroup.loc,ngroup.spp){
@@ -26,18 +26,15 @@ sample.psi=function(z,w,dat,ngroup.loc,ngroup.spp){
 #' Sample vk parameters from their full conditional distributions and convert 
 #' these vk parameters into theta parameters
 #'
-#' @param ngroup.loc this is the maximum number of groups for locations
-#' @param gamma.v this is the truncated stick-breaking prior parameter for the 
-#'                number of location groups. This value should be between 0 and 1, and
+#' @param ngroup.loc maximum number of groups for locations (KL)
+#' @param gamma.v truncated stick-breaking prior parameter for the 
+#'                location groups. This value should be between 0 and 1, and
 #'                small values enforce more parsimonius results (i.e., fewer groups)
-#' @param burnin this is the number of MCMC samples that are going to be thrown out as 
+#' @param burnin number of MCMC samples that are going to be thrown out as 
 #'               part of the burn-in phrase
-#' @param gibbs.step this is the number of the current iteration of the gibbs sampler
-#' @param theta vector of size ngroup.loc (the maximum number of groups for locations) containing 
-#'              the current estimate of theta (i.e., probability of each location group)                  
-#' @param psi matrix of size ngroup.loc (the maximum number of groups for locations) and 
-#'            ngroup.spp (the maximum number of groups for species) containing the current estimate 
-#'            of psi
+#' @param gibbs.step current iteration of the gibbs sampler
+#' @param theta vector of size KL containing the current estimate of theta (i.e., probability of each location group)                  
+#' @param psi KL x KS matrix  containing the current estimate of psi
 #' @param z this is a vector of length L, storing the current membership of each location
 #' @param return this function returns a list containing 4 items (theta, vk, psi, and z)
 #' @export
@@ -83,26 +80,23 @@ sample.theta=function(ngroup.loc,gamma.v,burnin,gibbs.step,theta,psi,z){
 #' Sample uk parameters from their full conditional distributions and 
 #' then calculate the implied phi parameters
 #'
-#' @param ngroup.spp this is the maximum number of groups for species
-#' @param gamma.u this is the truncated stick-breaking prior parameter for the 
-#'                number of species groups. This value should be between 0 and 1, and
+#' @param ngroup.spp maximum number of groups for species (KS)
+#' @param gamma.u the truncated stick-breaking prior parameter for 
+#'                species groups. This value should be between 0 and 1, and
 #'                small values enforce more parsimonius results (i.e., fewer groups)
-#' @param burnin this is the number of MCMC samples that are going to be thrown out as 
+#' @param burnin number of MCMC samples that are going to be thrown out as 
 #'               part of the burn-in phrase
-#' @param gibbs.step this is the number of the current iteration of the gibbs sampler
-#' @param phi vector of size ngroup.spp (the maximum number of groups for species) containing 
-#'              the current estimate of phi (i.e., probability of each species group)                  
-#' @param psi matrix of size ngroup.loc (the maximum number of groups for locations) and 
-#'            ngroup.spp (the maximum number of groups for species) containing the current estimate 
-#'            of psi
-#' @param w this is a vector of length S, storing the current membership of each species
+#' @param gibbs.step current iteration of the gibbs sampler
+#' @param phi vector of size KS containing the current estimate of phi (i.e., probability of each species group)                  
+#' @param psi matrix of size KL x KS containing the current estimate  of psi
+#' @param w vector of length S, storing the current membership of each species
 #' @param return this function returns a list with 4 items (phi, uk, w, psi)
 #' @export
 #' 
 
 sample.phi=function(ngroup.spp,gamma.u,burnin,gibbs.step,phi,psi,w){
   #re-order phi in decreasing order if we are still in burn-in phase 
-  #Based on this re-ordering, re-order w and psi
+  #Based on this re-ordering, re-order w's and psi's
   if(gibbs.step<burnin & gibbs.step%%50==0){
     ind=order(phi,decreasing=T)
     phi=phi[ind]
@@ -138,10 +132,10 @@ sample.phi=function(ngroup.spp,gamma.u,burnin,gibbs.step,phi,psi,w){
 #--------------------------
 #' Sample gamma.u
 #' 
-#' Sample the gamma.u parameter from its full conditional distribution
+#' Sample the TSB prior parameter for species groups (gamma.u) from its full conditional distribution
 #'
-#' @param uk this is a vector of size ngroup.spp with the pieces of the unit 1 stick for species grouping
-#' @param ngroup.spp this is the maximum number of groups for species
+#' @param uk vector of size KS with probabilities
+#' @param ngroup.spp maximum number of species groups (KS)
 #' @param gamma.possib this is a vector containing the possible values that gamma.u can take
 #' @param return this function returns a real number (gamma.u) 
 #' @export
@@ -165,11 +159,11 @@ sample.gamma.u=function(uk,gamma.possib,ngroup.spp){
 #--------------------------
 #' Sample gamma.v
 #' 
-#' Sample the gamma.v parameter from its full conditional distribution
+#' Sample the TSB prior parameter for location groups (gamma.v) from its full conditional distribution
 #'
-#' @param vk this is a vector of size ngroup.loc with the pieces of the unit 1 stick for location grouping
-#' @param ngroup.loc this is the maximum number of groups for locations
-#' @param gamma.possib this is a vector containing the possible values that gamma.u can take
+#' @param vk vector of size KL with probabilities
+#' @param ngroup.loc maximum number of location groups (KL)
+#' @param gamma.possib vector containing the possible values that gamma.u can take
 #' @param return this function returns a real number (gamma.v) 
 #' @export
 #' 
@@ -195,19 +189,17 @@ sample.gamma.v=function(vk,gamma.possib,ngroup.loc){
 #' 
 #' Sample the vector z containing the membership of each location
 #'
-#' @param ltheta this is equal to log(theta)
-#' @param dat this matrix has L rows (e.g., locations) and S columns (e.g., species)
-#'            and contains the presence-absence data
-#' @param dat1m this matrix has L rows (e.g., locations) and S columns (e.g., species)
-#'              and is calculated as 1-dat
-#' @param lpsi this is equal to log(psi)
-#' @param l1mpsi this is equal to log(1-psi)
-#' @param ngroup.loc this is the maximum number of groups for locations
-#' @param ngroup.spp this is the maximum number of groups for species
-#' @param nloc total number of locations
-#' @param nspp total number of species
-#' @param w this is a vector of length S, storing the current membership of each species
-#' @param z this is a vector of length L, storing the current membership of each locations
+#' @param ltheta equal to log(theta)
+#' @param dat L x S matrix, containing the presence-absence data
+#' @param dat1m L x S matrix, calculated as 1-dat
+#' @param lpsi equal to log(psi)
+#' @param l1mpsi equal to log(1-psi)
+#' @param ngroup.loc maximum number of location groups (KL)
+#' @param ngroup.spp maximum number of species groups (KS)
+#' @param nloc total number of locations (L)
+#' @param nspp total number of species (S)
+#' @param w vector of length S, storing the current membership of each species
+#' @param z vector of length L, storing the current membership of each locations
 #' @param return this function returns a vector of length L containing z 
 #' @export
 #' 
@@ -221,7 +213,7 @@ sample.z=function(ltheta,dat,dat1m,lpsi,l1mpsi,ngroup.loc,ngroup.spp,nloc,nspp,w
     lprob.exist[,i]=ltheta[i]+rowSums(dat*lpsi1+dat1m*l1mpsi1)
   }
   
-  #calculation of log probability for groups that do not exist yet
+  #calculation of log probability for LOCATION groups that do not exist yet
   tmp=rep(0,nloc)
   
   for (i in 1:ngroup.spp){
@@ -265,19 +257,17 @@ sample.z=function(ltheta,dat,dat1m,lpsi,l1mpsi,ngroup.loc,ngroup.spp,nloc,nspp,w
 #' 
 #' Sample the vector w containing the membership of each species
 #'
-#' @param lphi this is equal to log(phi)
-#' @param dat this matrix has L rows (e.g., locations) and S columns (e.g., species)
-#'            and contains the presence-absence data
-#' @param dat1m this matrix has L rows (e.g., locations) and S columns (e.g., species)
-#'              and is calculated as 1-dat
-#' @param lpsi this is equal to log(psi)
-#' @param l1mpsi this is equal to log(1-psi)
-#' @param ngroup.loc this is the maximum number of groups for locations
-#' @param ngroup.spp this is the maximum number of groups for species
-#' @param nloc total number of locations
-#' @param nspp total number of species
-#' @param w this is a vector of length S, storing the current membership of each species
-#' @param z this is a vector of length L, storing the current membership of each locations
+#' @param lphi equal to log(phi)
+#' @param dat L x S matrix, containing the presence-absence data
+#' @param dat1m L x S matrix, calculated as 1-dat
+#' @param lpsi equal to log(psi)
+#' @param l1mpsi equal to log(1-psi)
+#' @param ngroup.loc maximum number of location groups (KL)
+#' @param ngroup.spp thismaximum number of species groups (KS)
+#' @param nloc total number of locations (L)
+#' @param nspp total number of species (S)
+#' @param w vector of length S, storing the current membership of each species
+#' @param z vector of length L, storing the current membership of each locations
 #' @param return this function returns a vector of length S containing w 
 #' @export
 #' 
@@ -290,7 +280,7 @@ sample.w=function(lphi,dat,dat1m,lpsi,l1mpsi,ngroup.spp,ngroup.loc,nloc,nspp,w,z
     lprob.exist[,i]=lphi[i]+colSums(dat*lpsi1+dat1m*l1mpsi1)
   }
   
-  #calculate log probability for groups that do not exist yet
+  #calculate log probability for SPECIES groups that do not exist yet
   tmp=rep(0,nspp)
   for (i in 1:ngroup.loc){
     cond=z==i

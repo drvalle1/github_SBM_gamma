@@ -2,19 +2,22 @@
 #' 
 #' Runs the Gibbs sampler and returns samples from the posterior distribution
 #' 
-#' @param dat this matrix has L rows (e.g., locations) and S columns (e.g., species)
-#'            and contains the presence-absence data 
-#' @param ngroup.loc this is the maximum number of groups for locations
-#' @param ngroup.spp this is the maximum number of groups for species
-#' @param ngibbs  number of Gibbs sampler iterations              
-#' @param return this function returns a list containing several matrices, all of which have ngibbs rows:
-#'               - theta: matrix with the estimated proportion of each location group
-#'               - phi:   matrix with the estimated proportion of each species group
-#'               - llk:   vector with the log-likelihood for each iteration
-#'               - psi:   matrix with the presence probability for each location group and species group                                
-#'               - z:     matrix with the cluster assignment of each location
-#'               - w:     matrix with the cluster assignment of each species
-#'               -gamma:  matrix with the estimated gamma parameters (one for locations and the other for species)
+#' @param dat matrix has L rows (e.g., locations) and S columns (e.g., species),
+#'            containing the presence-absence data 
+#' @param ngroup.loc maximum number of location groups (KL)
+#' @param ngroup.spp maximum number of species groups (KS)
+#' @param ngibbs  number of Gibbs sampler iterations   
+#' @param burnin  number of iterations to discard as part of burn-in phase
+#' @param return this function returns samples from the posterior distribution in the form of a 
+#'               list containing several matrices. These matrices have ngibbs-burnin rows and 
+#'               contain the posterior distribution for:
+#'               - theta: probability of each location group
+#'               - phi:   probability of each species group
+#'               - llk:   log-likelihood for each iteration
+#'               - psi:   presence probability for each location group and species group                                
+#'               - z:     cluster assignment of each location
+#'               - w:     cluster assignment of each species
+#'               - gamma: TSB prior parameters (one for location groups and the other for species groups)
 #' @export
 
 SBM=function(dat,ngroup.loc,ngroup.spp,ngibbs,burnin){
@@ -77,13 +80,11 @@ SBM=function(dat,ngroup.loc,ngroup.spp,ngibbs,burnin){
     z=sample.z(ltheta=log(theta),dat=dat,dat1m=dat1m,lpsi=lpsi,l1mpsi=l1mpsi,
                ngroup.loc=ngroup.loc,ngroup.spp=ngroup.spp,nloc=nloc,nspp=nspp,
                w=w,z=z)
-    # z=z.true
-    
+
     #sample w
     w=sample.w(lphi=log(phi),dat=dat,dat1m=dat1m,lpsi=lpsi,l1mpsi=l1mpsi,
                ngroup.spp=ngroup.spp,ngroup.loc=ngroup.loc,nloc=nloc,nspp=nspp,
                w=w,z=z)
-    # w=w.true
     
     #sample gammas
     gamma.u=sample.gamma.u(uk=uk,gamma.possib=gamma.possib,ngroup.spp=ngroup.spp)

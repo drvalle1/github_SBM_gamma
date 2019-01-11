@@ -10,8 +10,8 @@ using namespace Rcpp;
 
 //' Summarize data according to the different location and species groups
 //' 
-//' This function determines how many observations are in each location group l 
-//' and species group s for two cases: 
+//' This function determines how many observations are in each location group 
+//' and species group for two cases: 
 //' - when dat(i,j)=1: these results are stored in matrix nql1
 //' - when dat(i,j)=0: these results are stored in matrix nql0
 //' 
@@ -19,9 +19,9 @@ using namespace Rcpp;
 //' @param w integer vector with cluster assignments of species
 //' @param dat this matrix has L rows (e.g., locations) and S columns (e.g., species)
 //'        and contains the presence-absence data
-//' @param ngrloc maximum number of location groups
-//' @param ngrspp maximum number of species groups
-//' @return this function returns a list with two matrices: nql1 and nql0
+//' @param ngrloc number of location groups (KL)
+//' @param ngrspp number of species groups (KS)
+//' @return this function returns a list with two KL x KS matrices: nql1 and nql0
 //' @export
 
 // [[Rcpp::export]]
