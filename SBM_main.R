@@ -8,16 +8,18 @@
 #' @param ngroup.spp maximum number of species groups (KS)
 #' @param ngibbs  number of Gibbs sampler iterations   
 #' @param burnin  number of iterations to discard as part of burn-in phase
-#' @param return this function returns samples from the posterior distribution in the form of a 
+#' @return this function returns samples from the posterior distribution in the form of a 
 #'               list containing several matrices. These matrices have ngibbs-burnin rows and 
 #'               contain the posterior distribution for:
-#'               - theta: probability of each location group
-#'               - phi:   probability of each species group
-#'               - llk:   log-likelihood for each iteration
-#'               - psi:   presence probability for each location group and species group                                
-#'               - z:     cluster assignment of each location
-#'               - w:     cluster assignment of each species
-#'               - gamma: TSB prior parameters (one for location groups and the other for species groups)
+#'               \itemize{
+#'                 \item theta: probability of each location group
+#'                 \item phi:   probability of each species group
+#'                 \item llk:   log-likelihood for each iteration
+#'                 \item psi:   presence probability for each location group and species group                                
+#'                 \item z:     cluster assignment of each location
+#'                 \item w:     cluster assignment of each species
+#'                 \item gamma: TSB prior parameters (one for location groups and the other for species groups)
+#'               }
 #' @export
 
 SBM=function(dat,ngroup.loc,ngroup.spp,ngibbs,burnin){

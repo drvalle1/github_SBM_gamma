@@ -8,7 +8,7 @@
 #' @param ngroup.spp maximum number of species groups (KS)
 #' @param z vector of length L, storing the current membership of each location
 #' @param w vector of length S, storing the current membership of each species
-#' @param return a KL x KS matrix of psi parameters
+#' @return a KL x KS matrix of psi parameters
 #' @export
 
 sample.psi=function(z,w,dat,ngroup.loc,ngroup.spp){
@@ -36,7 +36,7 @@ sample.psi=function(z,w,dat,ngroup.loc,ngroup.spp){
 #' @param theta vector of size KL containing the current estimate of theta (i.e., probability of each location group)                  
 #' @param psi KL x KS matrix  containing the current estimate of psi
 #' @param z this is a vector of length L, storing the current membership of each location
-#' @param return this function returns a list containing 4 items (theta, vk, psi, and z)
+#' @return this function returns a list containing 4 items (theta, vk, psi, and z)
 #' @export
 
 sample.theta=function(ngroup.loc,gamma.v,burnin,gibbs.step,theta,psi,z){
@@ -90,7 +90,7 @@ sample.theta=function(ngroup.loc,gamma.v,burnin,gibbs.step,theta,psi,z){
 #' @param phi vector of size KS containing the current estimate of phi (i.e., probability of each species group)                  
 #' @param psi matrix of size KL x KS containing the current estimate  of psi
 #' @param w vector of length S, storing the current membership of each species
-#' @param return this function returns a list with 4 items (phi, uk, w, psi)
+#' @return this function returns a list with 4 items (phi, uk, w, psi)
 #' @export
 #' 
 
@@ -137,7 +137,7 @@ sample.phi=function(ngroup.spp,gamma.u,burnin,gibbs.step,phi,psi,w){
 #' @param uk vector of size KS with probabilities
 #' @param ngroup.spp maximum number of species groups (KS)
 #' @param gamma.possib this is a vector containing the possible values that gamma.u can take
-#' @param return this function returns a real number (gamma.u) 
+#' @return this function returns a real number (gamma.u) 
 #' @export
 #' 
 sample.gamma.u=function(uk,gamma.possib,ngroup.spp){
@@ -164,7 +164,7 @@ sample.gamma.u=function(uk,gamma.possib,ngroup.spp){
 #' @param vk vector of size KL with probabilities
 #' @param ngroup.loc maximum number of location groups (KL)
 #' @param gamma.possib vector containing the possible values that gamma.u can take
-#' @param return this function returns a real number (gamma.v) 
+#' @return this function returns a real number (gamma.v) 
 #' @export
 #' 
 
@@ -200,7 +200,7 @@ sample.gamma.v=function(vk,gamma.possib,ngroup.loc){
 #' @param nspp total number of species (S)
 #' @param w vector of length S, storing the current membership of each species
 #' @param z vector of length L, storing the current membership of each locations
-#' @param return this function returns a vector of length L containing z 
+#' @return this function returns a vector of length L containing z 
 #' @export
 #' 
 
@@ -268,7 +268,7 @@ sample.z=function(ltheta,dat,dat1m,lpsi,l1mpsi,ngroup.loc,ngroup.spp,nloc,nspp,w
 #' @param nspp total number of species (S)
 #' @param w vector of length S, storing the current membership of each species
 #' @param z vector of length L, storing the current membership of each locations
-#' @param return this function returns a vector of length S containing w 
+#' @return this function returns a vector of length S containing w 
 #' @export
 #' 
 sample.w=function(lphi,dat,dat1m,lpsi,l1mpsi,ngroup.spp,ngroup.loc,nloc,nspp,w,z){
